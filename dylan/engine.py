@@ -81,3 +81,57 @@ def EuropeanBinomialPricer(pricing_engine, option, data):
     price = disc * payoffT 
      
     return price 
+
+
+class MonteCarloPricingEngine(PricingEngine):
+    """
+    Doc string
+    """
+
+    def __init__(self, reps, steps, pricer):
+        self.__reps = reps
+        self.__steps = steps
+        self.__pricer = pricer
+
+    @property
+    def reps(self):
+        return self.__reps
+
+    @reps.setter
+    def reps(self, new_reps):
+        self.__reps = new_reps
+
+    @property
+    def steps(self):
+        return self.__steps
+
+    @steps.setter
+    def steps(self, new_steps):
+        self.__steps = new_steps
+
+    def calculate(self, option, data):
+        return self.__pricer(self, option, data)
+
+
+def NaiveMonteCarloPricer(pricing_engine, option, data):
+    """
+    Doc string
+    """
+
+    expiry = option.expiry
+    strike = option.strike
+    (spot, rate, volatility, dividend) = data.get_data()
+    reps = pricing_engine.reps
+    steps = pricing_engine.steps
+    disc = np.exp(-rate * expiry)
+    dt = expiry / steps
+
+    nudt = (rate - dividend - 0.5 * volatility * volatility) * dt
+    sigsdt = volatility * np.sqrt(dt)
+    z = np.random.normal(size=reps)
+
+    spotT = spot * np.exp(nudt + sigsdt * z)
+    callT = option.payoff(spotT)
+
+    return callT.mean() * disc
+
