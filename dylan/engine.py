@@ -1,6 +1,7 @@
 import abc
 import numpy as np
 from scipy.stats import binom
+from scipy.stats import norm
 
 
 class PricingEngine(object, metaclass=abc.ABCMeta):
@@ -80,7 +81,7 @@ def EuropeanBinomialPricer(pricing_engine, option, data):
         payoffT += option.payoff(spotT)  * binom.pmf(steps - i, steps, pu)  
     price = disc * payoffT 
      
-    return price 
+    return price
 
 def AmericanBinomialPricer(pricing_engine, option, data):
     """
@@ -120,7 +121,6 @@ def AmericanBinomialPricer(pricing_engine, option, data):
             payoffT[j] = np.maximum(payoffT[j], option.payoff(spotT[j]))
             
     return payoffT[0]
-
 
 
 class MonteCarloPricingEngine(PricingEngine):
