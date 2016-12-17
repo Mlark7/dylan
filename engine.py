@@ -194,13 +194,6 @@ def BlackScholes(spot, strike, rate, volatility, dividend, expiry):
     d2 = d1 - volatility * np.sqrt(expiry)
     price = spot * np.exp(-dividend * expiry) * N(d1) -  strike * np.exp(-rate * expiry) * N(d2)
     
-    #if ____________________: #CALL
-    #    price = spot * np.exp(-dividend * expiry) * N(d1) -  strike * np.exp(-rate * expiry) * N(d2)
-    #elif __________________: #PUT
-    #    price = strike * np.exp(-rate * expiry) * N(-d2) -  strike * np.exp(-dividend * expiry) * N(-d1)
-    #else:
-    #    print("You have entered somthing other than call or put. Please try again.")
-    
     return price
 
 def StratifiedMonteCarloPricer(pricing_engine, option, data):
