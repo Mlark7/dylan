@@ -135,3 +135,67 @@ def NaiveMonteCarloPricer(pricing_engine, option, data):
 
     return callT.mean() * disc
 
+def GeometricAsianCall(spot, strike, rate, volatility, dividend, expiry, steps):
+    dt = expiry/steps
+    nu = rate - dividend - 0.5 * volatility * volatility
+    a = steps * (steps - 1) + (2.0 * steps + 1.0) / 6.0
+    V = np.exp(-rate * expiry) * spot * np.exp(((steps + 1) * nu / 2.0 + volatility * volatility * a / (2.0 * steps * steps)) * dt)
+    vang = volatility * np.sqrt(a) / (pow(steps, 1.5))
+    
+    price = BlackScholes(V, strike, rate, vang, 0, expiry)
+
+    return price
+
+# For Call option Only.
+
+def BlackScholes(spot, strike, rate, volatility, dividend, expiry):
+    N = norm.cdf
+    d1 = (np.log(spot/strike) + (rate - dividend - 0.5 * volatility * volatility) * expiry) / (volatility * np.sqrt(expiry))
+    d2 = d1 - volatility * np.sqrt(expiry)
+    price = spot * np.exp(-dividend * expiry) * N(d1) -  strike * np.exp(-rate * expiry) * N(d2)
+    
+    return price
+
+def StratifiedMonteCarloPricer(pricing_engine, option, data):
+    """
+    Doc string
+    """
+
+    expiry = option.expiry
+    strike = option.strike
+    (spot, rate, volatility, dividend) = data.get_data()
+    reps = pricing_engine.reps
+    steps = pricing_engine.steps
+    disc = np.exp(-rate * expiry)
+    dt = expiry / steps
+    b = -1.0
+    
+    z = np.random.normal(size=(reps, steps))
+    drift = (rate - dividend - 0.5 * volatility * volatility) * dt
+    diffusion = volatility * np.sqrt(dt) 
+    disc = np.exp(-rate * expiry)
+
+    Gstar = GeometricAsianCall(spot, strike, rate, volatility, dividend, expiry, steps)
+    spotT = np.zeros((reps, steps))
+    spotT[:,0] = spot
+    A = np.zeros(reps)
+    G = np.zeros(reps)
+    W = np.zeros(reps)
+
+    for i in range(reps):
+        for j in range(1, steps):
+            spotT[i,j] = spotT[i,j-1] * np.exp(drift + diffusion * z[i,j])
+        
+        A_mean = spotT[i].mean()
+        G_mean = pow(spotT[i].prod(), 1 / steps)
+        A[i] = option.payoff(A_mean)
+        G[i] = option.payoff(G_mean)
+        W[i] = A[i] + (b * (Gstar - G[i]))
+    
+    
+    W = W.std()
+    W = W/np.sqrt(reps)
+    price = disc * A.mean() + b * (Gstar - G.mean())
+    
+    print("Standard Error: {0:0.3f}".format(W))
+    return price
