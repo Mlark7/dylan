@@ -82,6 +82,46 @@ def EuropeanBinomialPricer(pricing_engine, option, data):
      
     return price 
 
+def AmericanBinomialPricer(pricing_engine, option, data):
+    """
+    The binomial option pricing model for a plain vanilla American option.
+
+    Args:
+        pricing_engine (PricingEngine): a pricing method via the PricingEngine interface
+        option (Payoff):                an option payoff via the Payoff interface
+        data (MarketData):              a market data variable via the MarketData interface
+
+    """
+
+    expiry = option.expiry
+    strike = option.strike
+    (spot, rate, volatility, dividend) = data.get_data()
+    steps = pricing_engine.steps
+    nodes = steps + 1
+    dt = expiry / steps 
+    u = np.exp((rate * dt) + volatility * np.sqrt(dt)) 
+    d = np.exp((rate * dt) - volatility * np.sqrt(dt))
+    pu = (np.exp(rate * dt) - d) / (u - d)
+    pd = 1 - pu
+    disc = np.exp(-rate * expiry)
+    dpu = disc * pu
+    dpd = disc * pd
+    spotT = np.zeros(nodes)
+    payoffT = np.zeros(nodes)
+    
+    for i in range(nodes):
+        spotT[i] = spot * (u ** (steps - i)) * (d ** (i))
+        payoffT[i] = option.payoff(spotT[i])  
+        
+    for i in range(steps- 1, -1, -1):
+        for j in range(i + 1):
+            payoffT[j] = (dpu * payoffT[j]) + (dpd * payoffT[j+1])
+            spotT[j] = spotT[j] / u
+            payoffT[j] = np.maximum(payoffT[j], option.payoff(spotT[j]))
+            
+    return payoffT[0]
+
+
 
 class MonteCarloPricingEngine(PricingEngine):
     """
